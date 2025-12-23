@@ -7,7 +7,7 @@
  */
 
 import { ReclaimClient } from "@reclaimprotocol/zk-fetch";
-import { ReclaimProofRequest } from "@reclaimprotocol/js-sdk";
+import { ReclaimProofRequest, verifyProof } from "@reclaimprotocol/js-sdk";
 import "./App.css";
 import { useState, useEffect, useCallback } from "react";
 import { Toaster, toast } from "react-hot-toast";
@@ -254,13 +254,31 @@ function App() {
 
       // Start the Reclaim session and listen for callbacks
       await reclaimProofRequest.startSession({
-        onSuccess: (proof) => {
-          setIsVerifying(false);
+        onSuccess: async (proof) => {
           if (proof && typeof proof !== "string") {
-            // Normalize proof to array format
-            setVerificationProof(Array.isArray(proof) ? proof : [proof]);
-            toast.success("Post verified successfully!");
+            // Verify the JS SDK proof
+            const proofArray = Array.isArray(proof) ? proof : [proof];
+
+            try {
+              // Verify each proof in the array
+              for (const p of proofArray) {
+                const isProofValid = await verifyProof(p);
+                console.log("JS SDK proof verification:", isProofValid);
+
+                if (!isProofValid) {
+                  throw new Error("JS SDK proof verification failed");
+                }
+              }
+
+              setIsVerifying(false);
+              setVerificationProof(proofArray);
+              toast.success("Post verified successfully!");
+            } catch (error) {
+              setIsVerifying(false);
+              setVerificationError(`Proof verification failed: ${error.message}`);
+            }
           } else {
+            setIsVerifying(false);
             setVerificationError("Received invalid proof response.");
           }
         },
@@ -362,11 +380,21 @@ function App() {
       });
 
       console.log("zkFetch response:", data);
+
+      // Verify the zkFetch proof
+      const isZkFetchProofValid = await verifyProof(data);
+      console.log("zkFetch proof verification:", isZkFetchProofValid);
+
+      if (!isZkFetchProofValid) {
+        throw new Error("zkFetch proof verification failed");
+      }
+
       setProofData(data);
 
       // Extract username from the proof's extracted values
       if (data?.extractedParameterValues?.username) {
         setUsername(data.extractedParameterValues.username);
+        toast.success("Post owner fetched and proof verified!");
       }
 
       setIsFetching(false);
@@ -440,7 +468,7 @@ function App() {
                     Verifying...
                   </>
                 ) : (
-                  "Verify Ownership"
+                  "Verify Post"
                 )}
               </button>
 

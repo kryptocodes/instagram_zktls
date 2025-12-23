@@ -196,4 +196,4 @@ This data is displayed in an Instagram-style embed card.
 
 - [Reclaim Protocol Docs](https://docs.reclaimprotocol.org/)
 - [Reclaim Developer Dashboard](https://dev.reclaimprotocol.org/)
-- [zkFetch Documentation](https://docs.reclaimprotocol.org/zk-fetch)
+- [zkFetch Documentation](https://docs.reclaimprotocol.org/zkfetch)
