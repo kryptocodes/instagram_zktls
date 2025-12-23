@@ -1,6 +1,6 @@
 # Instagram Post Verification Demo
 
-Verify Instagram post ownership using zkTLS [Reclaim Protocol](https://reclaimprotocol.org/).
+Verify Instagram post ownership using zkTLS with [Reclaim Protocol](https://reclaimprotocol.org/).
 
 ## Overview
 
@@ -40,18 +40,35 @@ This demo application allows users to:
 - Node.js 18+
 - Reclaim Protocol credentials from [dev.reclaimprotocol.org](https://dev.reclaimprotocol.org/)
 
-## Setup
-
-### 1. Clone and install dependencies
+## Quick Start
 
 ```bash
-# Install backend dependencies
-cd backend
-npm install
+# Install all dependencies
+npm run install:all
 
-# Install frontend dependencies
-cd ../frontend
-npm install
+# Configure environment variables (see below)
+
+# Run both frontend and backend
+npm run dev
+```
+
+The app will be available at `http://localhost:3000`.
+
+## Setup
+
+### 1. Install dependencies
+
+```bash
+# Install all dependencies (root, backend, frontend)
+npm run install:all
+```
+
+Or install individually:
+
+```bash
+npm install                  # Root dependencies
+npm install --prefix backend # Backend dependencies
+npm install --prefix frontend # Frontend dependencies
 ```
 
 ### 2. Configure environment variables
@@ -68,38 +85,53 @@ PORT=8080
 REACT_APP_RECLAIM_APP_ID=your_reclaim_app_id
 REACT_APP_RECLAIM_APP_SECRET=your_reclaim_app_secret
 REACT_APP_API_URL=http://localhost:8080
-REACT_APP_CUSTOM_SHARE_PAGE_URL=SHARE_PAGE_URL
+REACT_APP_CUSTOM_SHARE_PAGE_URL=https://portal.reclaimprotocol.org/kernel
+
+# Optional: Disable source map warnings
+GENERATE_SOURCEMAP=false
 ```
 
 ### 3. Start the servers
 
 ```bash
-# Terminal 1: Start backend
-cd backend
+# Run both frontend and backend together
 npm run dev
-
-# Terminal 2: Start frontend
-cd frontend
-npm start
 ```
 
-The app will be available at `http://localhost:3000`.
+Or run separately:
+
+```bash
+npm run dev:backend   # Start only backend (port 8080)
+npm run dev:frontend  # Start only frontend (port 3000)
+```
+
+## Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Run backend + frontend concurrently |
+| `npm run dev:backend` | Run only backend |
+| `npm run dev:frontend` | Run only frontend |
+| `npm run install:all` | Install all dependencies |
+| `npm run build` | Build frontend for production |
 
 ## Project Structure
 
 ```
-instagram_demo/
+instagram-demo/
+├── package.json          # Root scripts (concurrently)
+├── README.md
 ├── backend/
 │   ├── index.ts          # Express server with /sign endpoint
 │   ├── package.json
-│   └── tsconfig.json
-├── frontend/
-│   ├── src/
-│   │   ├── App.js        # Main React component
-│   │   └── App.css       # Instagram-style UI
-│   ├── package.json
-│   └── .env
-└── README.md
+│   ├── tsconfig.json
+│   └── .env.example
+└── frontend/
+    ├── src/
+    │   ├── App.js        # Main React component
+    │   └── App.css       # style UI
+    ├── package.json
+    └── .env.example
 ```
 
 ## API Endpoints
@@ -157,6 +189,7 @@ This data is displayed in an Instagram-style embed card.
 
 - **Frontend**: React, react-hot-toast
 - **Backend**: Express, TypeScript
+- **Build Tools**: concurrently, react-app-rewired
 - **Verification**: Reclaim Protocol (zkFetch, JS SDK)
 
 ## Resources
