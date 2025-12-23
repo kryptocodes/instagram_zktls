@@ -391,7 +391,7 @@ function App() {
           <header className="header">
             <h1 className="logo">Instagram Demo</h1>
             <p className="subtitle">
-              Verify Instagram post ownership with Reclaim Protocol
+              Verify Instagram post ownership using zkTLS (Reclaim Protocol)
             </p>
           </header>
 
