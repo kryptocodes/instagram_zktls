@@ -16,7 +16,7 @@ import { Toaster, toast } from "react-hot-toast";
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 /** Reclaim Provider ID for Instagram post ownership verification */
-const INSTAGRAM_PROVIDER_ID = 'af480885-d01c-4e35-89c7-207cd0f70b11';
+const INSTAGRAM_PROVIDER_ID = 'd5de1224-00b3-410b-916e-a1177b17f130';
 
 function App() {
   /** @type {[Object|null, Function]} zkFetch proof data containing extracted username */
@@ -69,38 +69,38 @@ function App() {
    *
    * @param {Array} proofs - Array of verification proof objects from Reclaim SDK
    * @returns {Object|null} Parsed post data or null if no proofs
-   *
-   * @typedef {Object} PostData
-   * @property {string|null} username - Post owner's Instagram username
-   * @property {string|null} caption - Post caption text
-   * @property {string|null} image - Post image URL from Instagram CDN
-   * @property {string|null} video - Post video URL (if applicable)
-   * @property {number} likes - Number of likes on the post
-   * @property {number} comments - Number of comments on the post
-   * @property {string|null} mediaCode - Instagram media code identifier
    */
   const extractPostData = (proofs) => {
     if (!proofs || proofs.length === 0) return null;
 
     let postData = {
       username: null,
+      userProfilePic: null,
+      postId: null,
       caption: null,
       image: null,
       video: null,
       likes: 0,
       comments: 0,
+      createdAt: null,
       mediaCode: null
     };
 
     for (const proof of proofs) {
-      // Extract public data (caption, image, video) from proof
+      // Extract from publicData (new format)
       if (proof.publicData) {
+        postData.username = proof.publicData.username || postData.username;
+        postData.userProfilePic = proof.publicData.userProfilePic || postData.userProfilePic;
+        postData.postId = proof.publicData.postId || postData.postId;
         postData.caption = proof.publicData.caption || postData.caption;
-        postData.image = proof.publicData.image || postData.image;
-        postData.video = proof.publicData.video || postData.video;
+        postData.image = proof.publicData.imageUrl || proof.publicData.image || postData.image;
+        postData.video = proof.publicData.videoUrl || proof.publicData.video || postData.video;
+        postData.likes = proof.publicData.likesCount ?? postData.likes;
+        postData.comments = proof.publicData.commentsCount ?? postData.comments;
+        postData.createdAt = proof.publicData.createdAt || postData.createdAt;
       }
 
-      // Parse the context JSON to get extracted parameters
+      // Parse the context JSON to get extracted parameters (fallback)
       try {
         const context = typeof proof.claimData?.context === 'string'
           ? JSON.parse(proof.claimData.context)
@@ -108,25 +108,8 @@ function App() {
 
         const params = context?.extractedParameters;
         if (params) {
-          postData.username = params.username || postData.username;
+          postData.username = postData.username || params.username;
           postData.mediaCode = params.media_code || postData.mediaCode;
-
-          // Parse like_count from nested JSON structure
-          // Format: {"value":{"results":[{"total_value":N}]}}
-          if (params.like_count) {
-            try {
-              const likeData = JSON.parse(params.like_count);
-              postData.likes = likeData?.value?.results?.[0]?.total_value || 0;
-            } catch (e) { /* Silently handle parse errors */ }
-          }
-
-          // Parse comment_count from nested JSON structure
-          if (params.comment_count) {
-            try {
-              const commentData = JSON.parse(params.comment_count);
-              postData.comments = commentData?.value?.results?.[0]?.total_value || 0;
-            } catch (e) { /* Silently handle parse errors */ }
-          }
         }
       } catch (e) {
         console.error("Error parsing proof context:", e);
@@ -134,6 +117,24 @@ function App() {
     }
 
     return postData;
+  };
+
+  /**
+   * Formats a date string to a relative time (e.g., "3 days ago")
+   */
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+    return `${Math.floor(diffDays / 365)} years ago`;
   };
 
   /**
@@ -492,18 +493,39 @@ function App() {
               <div className="embed">
                 {/* Post Header */}
                 <div className="embed-header">
-                  <div className="embed-avatar">
-                    {(postData?.username || username)?.charAt(0).toUpperCase()}
-                  </div>
+                  {postData?.userProfilePic ? (
+                    <img
+                      src={postData.userProfilePic}
+                      alt={postData?.username || username}
+                      className="embed-avatar-img"
+                    />
+                  ) : (
+                    <div className="embed-avatar">
+                      {(postData?.username || username)?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="embed-user-info">
                     <span className="embed-username">{postData?.username || username}</span>
+                    {postData?.createdAt && (
+                      <span className="embed-time">{formatRelativeTime(postData.createdAt)}</span>
+                    )}
                   </div>
                 </div>
 
-                {/* Post Image */}
-                {postData?.image && (
-                  <div className="embed-image">
-                    <img src={postData.image} alt="Post" />
+                {/* Post Media - Video or Image */}
+                {postData?.video ? (
+                  <div className="embed-media">
+                    <video
+                      src={postData.video}
+                      poster={postData.image}
+                      controls
+                      playsInline
+                      className="embed-video"
+                    />
+                  </div>
+                ) : postData?.image && (
+                  <div className="embed-media">
+                    <img src={postData.image} alt="Post" className="embed-img" />
                   </div>
                 )}
 
